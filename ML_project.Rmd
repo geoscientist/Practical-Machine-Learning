@@ -22,14 +22,32 @@ test_data <- read.csv("test_data.csv", header = TRUE)
 
 ```{r, echo=FALSE}
 # cleaning empty features
-good_data <- apply(!is.na(train_data), 2, sum)>19621
-train_data <- train_data[, good_data]
-test_data <- test_data[, good_data]
+train_data <- train_data[, c(2, 8:160)]
+test_data <- test_data[, c(2, 8:160)]
+not_empty_data <- apply(!is.na(train_data), 2, sum)>19621
+train_data <- train_data[, not_empty_data]
+test_data <- test_data[, not_empty_data]
 
 # data preprocessing
 zerovals <- nearZeroVar(train_data)
 train_data <- train_data[, -zerovals]
 test_data <- test_data[, -zerovals]
-# перед удалением атрибутов zerovals нужно попробовать преобразовать их в числовые значения
+
+trControl <- trainControl(method = "cv", repeats = 5)
+inTrain <- createDataPartition(train_data$classe, p = 0.6, list = FALSE)
+tr_sample <- train_data[inTrain, ]
+ts_sample <- train_data[-inTrain, ]
+rf_model <- train(classe ~ ., tr_sample, method = "rf")
+print(rf_model$finalModel)
+vImport <- varImp(rf_model)
+plot(vImport)
+
+features <- as.data.frame(vImport$importance)
+features$names <- rownames(features)
+best_features <- subset(features, features$Overall > 5)
+
+
+tr_sample1 <- tr_sample[, c(best_features$names, "classe")]
+rf_model1 <- train(classe ~ ., tr_sample1, method = "rf")
 ```
 
