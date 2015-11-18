@@ -49,5 +49,26 @@ best_features <- subset(features, features$Overall > 5)
 
 tr_sample1 <- tr_sample[, c(best_features$names, "classe")]
 rf_model1 <- train(classe ~ ., tr_sample1, method = "rf")
+
+rf_model$results
+rf_model1$results
+
+# as we can see model with fewer count of features not bad and we will use it.
+
+gbm_model <- train(classe ~ ., data = tr_sample1, method = "gbm", trControl = trControl, verbose = FALSE)
+gbm_model$results
+
+svm_model <- train(classe ~ ., data = tr_sample1, method = "svmLinear", trControl = trControl)
+svm_model$results
+
+ts_sample1$predicted_sample <- predict(rf_model1, ts_sample1)
+rf_cm <- confusionMatrix(ts_sample1$predicted_sample, ts_sample1$classe)
+rf_cm
+
+ts_sample1$predicted_gbm <- predict(gbm_model, ts_sample1)
+gbm_cm <- confusionMatrix(ts_sample1$predicted_gbm, ts_sample1$classe)
+gbm_cm
+
+# finally we selected rf_model1
 ```
 
