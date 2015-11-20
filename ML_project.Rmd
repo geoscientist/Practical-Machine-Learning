@@ -4,30 +4,58 @@ author: "Geoscientist"
 date: "15 november 2015 г."
 output: html_document
 ---
-**Abstract*s*  
-This paper provide complex analysis of "Weight Lifting Exercise Dataset". Analysis process consists of few stages: getting and cleaning data, exploratory data analysis, feature selecting, model training, model evaluation.  
+**Abstract**  
+This paper provide complex work on egineering and selecting machine learning model for classification type of manner in which 6 participants did lifting exercises. For this purposes we use "Weight Lifting Exercise Dataset".  
+Analysis process include next stages:  
+ - data downloading;  
+ - data cleaning;  
+ - exploratory data analysis;  
+ - feature selecting;  
+ - models training and selecting;
+ - model evaluation.  
 
-Dataset description
+Dataset description (from http://groupware.les.inf.puc-rio.br/har#ixzz3ry0vezxy)
+Human Activity Recognition - HAR - has emerged as a key research area in the last years and is gaining increasing attention by the pervasive computing research community (see picture below, that illustrates the increasing number of publications in HAR with wearable accelerometers), especially for the development of context-aware systems. There are many potential applications for HAR, like: elderly monitoring, life log systems for monitoring energy expenditure and for supporting weight-loss programs, and digital assistants for weight lifting exercises.
 
-**Getting and cleaning data**
-```{r}
+**Data downloading**
+```{r, cache=TRUE}
 # downloading and reading data
 library(caret)
 download.file('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv', destfile = 'train_data.csv')
 download.file('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv', destfile = 'test_data.csv')
 train_data <- read.csv("train_data.csv", header = TRUE)
 test_data <- read.csv("test_data.csv", header = TRUE)
-
 ```
 
-```{r, echo=FALSE}
-# cleaning empty features
+**Data cleaning**  
+As we can see dataset include some timestamp and empty features - they provide some noise component for prediction task, and we exclude them for training and testing datas.
+
+```{r, cache=TRUE}
+# removing timestamp features
 train_data <- train_data[, c(2, 8:160)]
 test_data <- test_data[, c(2, 8:160)]
+# now we find not empty data and reorganize training and testing datasets
 not_empty_data <- apply(!is.na(train_data), 2, sum)>19621
 train_data <- train_data[, not_empty_data]
 test_data <- test_data[, not_empty_data]
+```
 
+**Exploratory data analysis**  
+Before we will select features, we need to provide some exploratory information and plots.
+```{r, cache=TRUE}
+summary(train_data)
+```
+
+
+**Feature selecting**
+For purpose of feature selecting we find variables with zero variability using 'nearZeroVar' function of caret package, and then remove them from training and testing datasets. After removing redundant fatures variable's count decrease to 54 features.  
+We split trainig dataset into two parts - for model training and testing. On testing subset we will measure out of sample error and model accuracy. For training control we use cross-validation method with 5 iterations.
+
+In our analysis we will train 3 types of models - random forest, gradient boosting on trees and linear SVM.
+
+First iteration - train random forest model with all features as predictors, analyse model's accuracy and select most important features for model simplification and optimization.
+
+```{r, cache=TRUE}
 # data preprocessing
 zerovals <- nearZeroVar(train_data)
 train_data <- train_data[, -zerovals]
@@ -48,19 +76,36 @@ best_features <- subset(features, features$Overall > 5)
 
 
 tr_sample1 <- tr_sample[, c(best_features$names, "classe")]
+ts_sample1 <- ts_sample[, c(best_features$names)]
+```
+After variable importance analysis our dataset include only 36 variables, and now we train second random forest model on this data.
+
+
+**Models training and selecting**
+```{r, cache=TRUE}
 rf_model1 <- train(classe ~ ., tr_sample1, method = "rf")
 
 rf_model$results
 rf_model1$results
+```
+As we can see model with fewer count of features not bad and we will use it.
+In th next step we train GBM and SVM models and compare it's accuracy.
 
-# as we can see model with fewer count of features not bad and we will use it.
-
+```{r, cache=TRUE}
 gbm_model <- train(classe ~ ., data = tr_sample1, method = "gbm", trControl = trControl, verbose = FALSE)
 gbm_model$results
 
 svm_model <- train(classe ~ ., data = tr_sample1, method = "svmLinear", trControl = trControl)
 svm_model$results
+```
+Model testing shows us that SVM model has less accuracy.
 
+
+Out of sample error...
+
+**Model evalutaion**
+Finally we evaluate random forest and gradient boosting models using predict function on testing data subset.
+```{r, cache=TRUE}
 ts_sample1$predicted_sample <- predict(rf_model1, ts_sample1)
 rf_cm <- confusionMatrix(ts_sample1$predicted_sample, ts_sample1$classe)
 rf_cm
@@ -72,3 +117,5 @@ gbm_cm
 # finally we selected rf_model1
 ```
 
+**Conclusion**
+In this analysis we provide...
